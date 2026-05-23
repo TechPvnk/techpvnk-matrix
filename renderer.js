@@ -2,6 +2,10 @@ const canvas = document.getElementById('matrix')
 const ctx = canvas.getContext('2d')
 const bootLogo = new Image()
 
+// Re-calculate targets automatically once the physical image file is fully loaded
+bootLogo.onload = () => {
+    buildLogoTargets();
+}
 bootLogo.src = 'assets/bootlogo.png'
 
 canvas.width = window.innerWidth
@@ -13,25 +17,23 @@ canvas.height = window.innerHeight
 
 const glyphs = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ1234567890Zᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᚿᛃᛄᛇᛈᛉᛊᛋᛏᛒᛖᛗᛚᛜᛝᛟᛞ'
 
-const fontSize = 24 // Slightly smaller font allows for a massive surge in total elements
-const columnSpacing = fontSize * 0.75 // Tightly packed, overlapping columns for extreme density
+const fontSize = 24 
+const columnSpacing = fontSize * 0.75 
 
 const columns = Math.floor(canvas.width / columnSpacing)
 const streams = []
 
 let lastUpdateTime = 0
-const frameInterval = 100 // Increased interval slowing down the overall grid ticks for a steady rain
+const frameInterval = 100 
 
 for(let i = 0; i < columns; i++) {
     const streamLength = 14 + Math.floor(Math.random() * 25)
-    
-    // Determine depth layer: 1 = Foreground (Bright/Fast), 0 = Background (Dimmer/Slower)
     const layer = Math.random() > 0.35 ? 1 : 0 
     
     streams.push({
         x: i * columnSpacing,
-        currentRow: Math.floor(Math.random() * -40), // Staggered entry points
-        speed: layer === 1 ? 1 : 0.5,                // Slower fractional grid increments for background depth
+        currentRow: Math.floor(Math.random() * -40), 
+        speed: layer === 1 ? 1 : 0.5,                
         length: streamLength,
         layer: layer,
         gridHistory: {} 
@@ -60,55 +62,31 @@ let bootIndex = 0
 let bootComplete = false
 
 function drawBootSequence() {
-
     ctx.fillStyle = 'black'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    ctx.fillRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
+    // Subtle CRT flicker
+    ctx.globalAlpha = 0.85 + Math.random() * 0.15
+
+    const logoWidth = 500
+    // Prevent Division-by-Zero errors if the asset image hasn't completed loading yet
+    const aspect = bootLogo.width ? (bootLogo.width / bootLogo.height) : 1.6;
+    const logoHeight = logoWidth / aspect
+
+    ctx.drawImage(
+        bootLogo,
+        canvas.width / 2 - (logoWidth / 2),
+        40,
+        logoWidth,
+        logoHeight
     )
 
-    // subtle CRT flicker
-    ctx.globalAlpha =
-        0.85 + Math.random() * 0.15
-
-    ctx.globalAlpha =
-    0.85 + Math.random() * 0.15
-
-const logoWidth = 500
-
-const aspect =
-    bootLogo.width / bootLogo.height
-
-const logoHeight =
-    logoWidth / aspect
-
-ctx.drawImage(
-
-    bootLogo,
-
-    canvas.width / 2 - (logoWidth / 2),
-
-    40,
-
-    logoWidth,
-
-    logoHeight
-)
-
-
     ctx.globalAlpha = 1
-
     ctx.fillStyle = '#ff2020'
-
     ctx.font = 'bold 20px monospace'
-
     ctx.shadowBlur = 4
 
     for(let i = 0; i < bootIndex; i++) {
-
         ctx.fillText(
             bootLines[i],
             80,
@@ -122,8 +100,6 @@ ctx.drawImage(
 // =========================
 
 function drawMatrix(timestamp) {
-    // Semi-transparent overlay canvas pass. 
-    // A slightly lower opacity (0.05) keeps trails alive longer, matching your reference photo perfectly.
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)' 
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
@@ -137,17 +113,14 @@ function drawMatrix(timestamp) {
 
     for(const stream of streams) {
         if (shouldUpdateGrid) {
-            // Update active grid index based on custom stream depth speeds
             stream.currentRow += stream.speed
             
-            // Text matrix flash/mutation mutations
             Object.keys(stream.gridHistory).forEach(row => {
                 if(Math.random() > 0.94) {
                     stream.gridHistory[row] = glyphs.charAt(Math.floor(Math.random() * glyphs.length))
                 }
             })
 
-            // Store new grid glyph values
             const headIndex = Math.floor(stream.currentRow)
             if (headIndex >= 0 && headIndex * fontSize < canvas.height + 100) {
                 if (!stream.gridHistory[headIndex]) {
@@ -158,7 +131,6 @@ function drawMatrix(timestamp) {
 
         const currentHeadIndex = Math.floor(stream.currentRow)
 
-        // Draw the tail sequence
         for (let i = 0; i < stream.length; i++) {
             const targetRow = currentHeadIndex - i
             const y = targetRow * fontSize
@@ -169,23 +141,20 @@ function drawMatrix(timestamp) {
             const alpha = 1 - (i / stream.length)
 
             if (i === 0) {
-                // Foreground vs Background dynamic head coloring
                 if (stream.layer === 1) {
-                    ctx.fillStyle = '#ffffff'      // Pure stark white core
+                    ctx.fillStyle = '#ffffff'      
                     ctx.shadowColor = '#ff2222'
                     ctx.shadowBlur = 10
                 } else {
-                    ctx.fillStyle = '#ff5555'      // Soft crimson background core
+                    ctx.fillStyle = '#ff5555'      
                     ctx.shadowColor = '#aa0000'
                     ctx.shadowBlur = 4
                 }
             } else if (i < 4) {
-                // Saturated neon mid-glow blocks
                 ctx.fillStyle = stream.layer === 1 ? '#ff1a1a' : '#b30000'
                 ctx.shadowColor = '#990000'
                 ctx.shadowBlur = stream.layer === 1 ? 5 : 2
             } else {
-                // Graceful falling code tail fading into darkness
                 const redValue = stream.layer === 1 ? 150 : 85
                 ctx.fillStyle = `rgba(${redValue}, 0, 0, ${alpha * 0.85})`
                 ctx.shadowBlur = 0 
@@ -193,40 +162,33 @@ function drawMatrix(timestamp) {
             }
 
             let finalGlyph = glyph
-let drawX = stream.x
-let drawY = y
+            let drawX = stream.x
+            let drawY = y
 
-if(revealActive) {
+            // If the digital rain is over our logo boundary container, lock the coordinates down
+            if(revealActive && currentLogoAlpha > 0.05) {
+                const target = logoTargets.find(t => {
+                    return (
+                        Math.abs(t.x - stream.x) < 10 &&
+                        Math.abs(t.y - y) < 10
+                    )
+                })
 
-    const target =
-        logoTargets.find(t => {
+                if(target) {
+                    finalGlyph = target.glyph
+                    drawX = target.x
+                    drawY = target.y
 
-            return (
-                Math.abs(t.x - stream.x) < 10 &&
-                Math.abs(t.y - y) < 10
-            )
-        })
+                    // Tie the intercepting rain droplets to match the dynamic fading opacity curves
+                    ctx.fillStyle = `rgba(255, 48, 48, ${currentLogoAlpha})`
+                    ctx.shadowColor = '#770000'
+                    ctx.shadowBlur = 3
+                }
+            }
 
-    if(target) {
-
-        finalGlyph = target.glyph
-
-        drawX = target.x
-        drawY = target.y
-
-        ctx.fillStyle = '#ff3030'
-        ctx.shadowBlur = 3
-    }
-}
-
-ctx.fillText(
-    finalGlyph,
-    drawX,
-    drawY
-)
+            ctx.fillText(finalGlyph, drawX, drawY)
         }
 
-        // Reset system loops
         if ((currentHeadIndex - stream.length) * fontSize > canvas.height) {
             stream.currentRow = Math.floor(Math.random() * -40)
             stream.gridHistory = {} 
@@ -244,13 +206,11 @@ ctx.fillText(
 // =========================
 
 function drawCRT() {
-    // Tight 2px micro-scanlines to create that awesome monitor texture from the image
     ctx.fillStyle = 'rgba(0, 0, 0, 0.15)' 
     for(let y = 0; y < canvas.height; y += 3) {
         ctx.fillRect(0, y, canvas.width, 1)
     }
 
-    // Heavy background vignette wrap
     const gradient = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, canvas.height * 0.1,
         canvas.width / 2, canvas.height / 2, canvas.width * 0.8
@@ -267,21 +227,30 @@ function drawCRT() {
 // =========================
 
 let revealActive = false
-let revealProgress = 0
 let revealDirection = 1
+let currentLogoAlpha = 0.0 // Handle precise fade scaling states
 
 function drawLogoReveal() {
     ctx.font = 'bold 11px monospace';
     ctx.textBaseline = 'top';
 
-    // 1. DYNAMICALLY MEASURE THE VISUAL FOOTPRINT FOR PERFECT ALIGNMENT
+    // 1. Process Fade Transparency Frames Smoothly
+    if (revealDirection === 1) {
+        if (currentLogoAlpha < 0.92) currentLogoAlpha += 0.04; // Fade In Rate
+    } else {
+        if (currentLogoAlpha > 0) currentLogoAlpha -= 0.04;    // Fade Out Rate
+    }
+
+    // Guard trip to skip math loop if the text is completely transparent
+    if (currentLogoAlpha <= 0) return;
+
+    // 2. DYNAMICALLY MEASURE THE VISUAL FOOTPRINT FOR PERFECT ALIGNMENT
     let minCol = Infinity;
     let maxCol = -Infinity;
     let minY = Infinity;
     let maxY = -Infinity;
     const lineHeight = 13;
 
-    // We quickly scan the array structure just to find the physical bounding box size
     for (let row = 0; row < logoPattern.length; row++) {
         const line = logoPattern[row];
         const firstChar = line.search(/[^\s\u00A0]/);
@@ -299,37 +268,22 @@ function drawLogoReveal() {
     const visualWidth = (maxCol - minCol + 1) * charWidth;
     const visualHeight = (maxY - minY) + lineHeight;
 
-    // Establish the absolute screen center offsets
+    // Establish absolute screen centers
     const centerOffsetX = (canvas.width / 2) - (visualWidth / 2);
     const centerOffsetY = (canvas.height / 2) - (visualHeight / 2);
-    const totalColumns = maxCol - minCol;
 
-    // 2. RENDER THE LOGO FROM THE ANIMATION-AWARE TARGETS ARRAY
-    // This allows your out-animation framework to successfully hide/fade individual elements
+    // 3. RENDER LOGO GLYPHS
     for (let i = 0; i < logoTargets.length; i++) {
         const target = logoTargets[i];
 
-        // --- OUT-ANIMATION GUARD TRIPS ---
-        // If your out-animation relies on custom flags like target.active, target.alpha, etc.,
-        // uncomment or add those checks right here! For example:
-        // if (target.alpha <= 0) continue; 
-        // ---------------------------------
-
-        // Subtle CRT jitter
         const jitterX = (Math.random() - 0.5) * 1.5;
         const jitterY = (Math.random() - 0.5) * 1.5;
-
-        // Subtle phosphor flicker
         const brightness = 120 + Math.random() * 60;
 
-        // Use target alpha if your code has one (defaults to 0.92 if undefined)
-        const currentAlpha = target.alpha !== undefined ? target.alpha : 0.92;
-
-        ctx.fillStyle = `rgba(${brightness}, 20, 20, ${currentAlpha})`;
+        ctx.fillStyle = `rgba(${brightness}, 20, 20, ${currentLogoAlpha})`;
         ctx.shadowColor = '#770000';
         ctx.shadowBlur = 2;
 
-        // Draw character using the unified layout tracking positions
         ctx.fillText(
             target.glyph,
             target.x + jitterX,
@@ -342,44 +296,40 @@ function drawLogoReveal() {
 }
 
 const logoPattern = [
-
-'                                                                                            ##                                                                                                 ',
-'                                                                                          ###                                                                                                  ',
-'                                                                                       ##**#                                                                                                   ',
-'                                                                                      #*+*#######################                                                                              ',
-'                                                                                   #*+++*##*+++++++++++++++++++++#                                                                             ',
-'                                                                                 ##++++*##*+++++++++++++++++++++*#                                                                             ',
-'      ######################################################################     #+++++*###+++++++########++++++########        ################     #################    *###########          ',
-'    #*++++++++++++++++++++++*#*++++++++++++++++##*+++++++++++++++*#*+++++*#     *+++++*##*+++++++*     #*++++++*#*+++++#       *++++++*#+++++++#    #++++++#**+++++*#  #**+++++++*##            ',
+'                                                                                            ##                                                                                                  ',
+'                                                                                           ###                                                                                                  ',
+'                                                                                        ##**#                                                                                                   ',
+'                                                                                      #*+*#######################                                                                               ',
+'                                                                                   #*+++*##*+++++++++++++++++++++#                                                                              ',
+'                                                                                 ##++++*##*+++++++++++++++++++++*#                                                                              ',
+'      ######################################################################     #+++++*###+++++++########++++++########        ################     ################* *###########          ',
+'    #*++++++++++++++++++++++*#*++++++++++++++++##*+++++++++++++++*#*+++++*#     *+++++*##*+++++++* #*++++++*#*+++++#       *++++++*#+++++++#    #++++++#**+++++*#  #**+++++++*##            ',
 '  #*+++++++++++++++++++++++*#*++++++++++++++++*#*+++++++++++++++*#*+++++*#     #+++++*##*+++++++*#    #*++++++*##*+++++#     #*++++++##*+++++++*#  #*+++++* *+++++*###*++++++++*#               ',
-'  ###********#*+++++*#*****##+++++*##########* #+++++*#*********##+++++*#######++++++##*+++++++*######*+++++++# #*+++++#   #*++++++*##*+++++++++# #*+++++*##*+++++**++++++++*##                 ',
+'  ###********#*+++++*#*****##+++++*##########* #+++++*#*********##+++++*#######++++++##*+++++++*######*+++++++# #*+++++#   #*++++++*##*精度++++# #*+++++*##*+++++**++++++++*##                 ',
 '            #*+++++*#     #*+++++++++++++++# #*+++++*#          #++++++++++++++++++*##*++++++++++++++++++++++#  #*+++++#  #*+++++*# #*++++++++++*#*+++++*##*++++++++++++++*#                    ',
 '           #*++++++#      *+++++++++++++++* #*+++++*#          #++++++++++++++++++*##*+++++++++++++++++++++*#   #*+++++##*++++++*# #*+++++**+++++*+++++*##*++++++++++++*##                      ',
 '          #*+++++*#      #++++++**********# *+++++*#          *++++++********+++++##*++++++++*************#     #*+++++#++++++*#  #*+++++*#*+++++++++++# *++++++*+++++++*#                      ',
-'         #*++++++#      #++++++#############+++++*##########*#*+++++*     #*+++++###+++++++*#                   #*+++++++++++*#  ##+++++*# #++++++++++* #++++++##**+++++++##                    ',
-'        #*++++++#      #+++++++++++++++++##++++++++++++++++##*+++++*#    #*++++*##*+++++++*#                    #*+++++++++*#   #*++++++#   #++++++++*##++++++*    #*+++++++*#                  ',
-'       #*++++++#      *+++++++++++++++++#*++++++++++++++++##*+++++*#     *++++*##*+++++++*#                     #*++++++++*    #*++++++#    #*++++++*##*+++++*#      #*+++++++##                ',
+'         #*++++++#      #++++++#############+++++*##########*#*+++++* #*+++++###+++++++*#                   #*+++++++++++*#  ##+++++*# #++++++++++* #++++++##**+++++++##                    ',
+'        #*++++++#      #+++++++++++++++++##++++++++++++++++##*+++++*#    #*++++*##*+++++++*#                    #*+++++++++*#   #*++++++#   #++++++++*##++++++* #*+++++++*#                  ',
+'       #*++++++#      *+++++++++++++++++#*++++++++++++++++##*+++++*#     *++++*##*+++++++*#                     #*++++++++* #*++++++#    #*++++++*##*+++++*#      #*+++++++##                ',
 '      #*++++++#      ##****************###***************###*****##     #+++++# *+++++++*#                      ##*******#     ##*****#      #*****####*****##         ##*+++++*#               ',
-'     #*+++++*#                                                          #*+++##*++++++*####################****#                                                          #**++++*#             ',
+'     #*+++++*#                                                          #*+++##*++++++*####################****#                                                           #**++++*#             ',
 '    #*+++*##       ##################*+++++++++++++++++++++++++++++++++* *+*##*++++++**#*++++++++++++++++++++++++++++*# ##*++++++++++++++++++++++++++++++*******************##**+++*##*******###',
 '    *++*#*#*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++* #*##*+++++###*+++++++++++++++++++++++++++++***++++++++++++++++++++++++++++++++++++++*****############# ##*++*#         ',
 '  #*+*# ##############################++++++++++++++++++++++++++++++++++####*++++*##*+++++++++++++++++++++++++++**********+************#############                               ##***#       ',
-' ####                                ############################*##***+*##*+++*###++++++++++++++*######*####*                                                                         ###*     ',
-'###                                                                      #*++*#                                                                                                          *##    ',
-'#                                                                        *+*##                                                                                                                  ',
-'                                                                       #*+*#                                                                                                                    ',
-'                                                                      ##*#                                                                                                                      ',
-'                                                                     ###                                                                                                                        ',
-'                                                                     #                                                                                                                          '
-
+' ####                                ############################*##***+*##*+++*###++++++++++++++*######*####* ###* ',
+'###                                                                      #*++*#                                                                                                                 *##    ',
+'#                                                                        *+*##                                                                                                                         ',
+'                                                                        #*+*#                                                                                                                          ',
+'                                                                       ##*#                                                                                                                            ',
+'                                                                      ###                                                                                                                              ',
+'                                                                      #                                                                                                                                '
 ]
 
 let logoTargets = []
 
 function buildLogoTargets() {
-    // FORCE RESET: Wipes out the array completely to prevent ghosting or duplicating coordinates
     logoTargets.length = 0; 
-
     ctx.font = 'bold 11px monospace'; 
     const lineHeight = 13; 
 
@@ -387,50 +337,32 @@ function buildLogoTargets() {
     let minGridX = Infinity;
     let maxGridX = -Infinity;
 
-    // Phase 1: Scan the text pattern layout
     for (let row = 0; row < logoPattern.length; row++) {
         const line = logoPattern[row];
         for (let col = 0; col < line.length; col++) {
             const char = line[col];
-
             if (char && !/\s|\u00A0/.test(char)) {
                 if (col < minGridX) minGridX = col;
                 if (col > maxGridX) maxGridX = col;
-
-                rawGlyphs.push({
-                    gridX: col,
-                    gridY: row,
-                    glyph: char
-                });
+                rawGlyphs.push({ gridX: col, gridY: row, glyph: char });
             }
         }
     }
 
     if (rawGlyphs.length === 0) return;
 
-    // ========================================================
-    // CONTAINER CONTROLS (Tweak these now—they WILL work!)
-    // ========================================================
     const containerWidthPercent = 0.65; 
-    
-    // Changing this now forces an immediate pixel-shift update
-    const containerCenterAnchor = 0.50;  // 0.50 = Dead Center | 0.30 = Far Left | 0.70 = Far Right
+    const containerCenterAnchor = 0.50;  
 
-    // ========================================================
-    // CONTAINER MATH ENGINE
-    // ========================================================
     const containerWidth = canvas.width * containerWidthPercent;
     const containerHeight = logoPattern.length * lineHeight;
 
     const containerOffsetX = (canvas.width * containerCenterAnchor) - (containerWidth / 2);
     const containerOffsetY = (canvas.height / 2) - (containerHeight / 2);
-
     const totalLogoColumns = (maxGridX - minGridX);
 
-    // Phase 2: Repopulate the clean global target array
     for (const item of rawGlyphs) {
         const localXPercent = totalLogoColumns > 0 ? (item.gridX - minGridX) / totalLogoColumns : 0;
-
         logoTargets.push({
             x: containerOffsetX + (localXPercent * containerWidth),
             y: containerOffsetY + (item.gridY * lineHeight),
@@ -439,13 +371,9 @@ function buildLogoTargets() {
     }
 }
 
-// Call rebuild
-buildLogoTargets();
-
 // =========================
 // MAIN ANIMATION LOOP
 // =========================
-
 function animate(timestamp) {
     if(!bootComplete) {
         drawBootSequence()
@@ -459,49 +387,43 @@ function animate(timestamp) {
     requestAnimationFrame(animate)
 }
 
+// Start drawing frames to the user screen immediately on load!
 requestAnimationFrame(animate)
+
 
 // =========================
 // BOOT TIMING
 // =========================
-
 const bootInterval = setInterval(() => {
     bootIndex++
     if(bootIndex > bootLines.length) {
         clearInterval(bootInterval)
         setTimeout(() => {
             bootComplete = true
-        }, 600)
+        }, 800) // Slight pause at the end of text streams before dropping matrix rain
     }
-}, 200)
+}, 220) // Clean pace for manual visual scan
 
 // =========================
 // LOGO REVEAL TIMER
 // =========================
-
 setInterval(() => {
-
     if(bootComplete && !revealActive) {
-        // 1. Kick off the introduction animation
         revealActive = true;
         revealDirection = 1;
 
-        // 2. Add a timed delay to trigger the out-animation automatically!
-        // (For example, let the logo stay visible for 8 seconds before disappearing)
+        // Display on screen for 9 seconds before initializing the clean exit alpha fade
         setTimeout(() => {
-            // Set direction to backwards/fade-out mode
             revealDirection = -1; 
             
-            // Wait for your out-animation to finish processing its frames (e.g., 2 seconds)
-            // then flip the main switch to false so the loop resets.
+            // Allow 2 full seconds for transparency values to reach 0.0 before completely resetting structural loop switches
             setTimeout(() => {
                 revealActive = false;
             }, 2000); 
 
-        }, 8000); // 8000ms = 8 seconds of screen time
+        }, 9000); 
     }
-
-}, 45000); // Runs the full sequence cycle every 45 seconds
+}, 45000); 
 
 // =========================
 // RESIZE SUPPORT
@@ -512,43 +434,29 @@ window.addEventListener('resize', () => {
     buildLogoTargets();
 })
 
+// =========================
+// INTERACTION APP ESCAPE CLOSES
+// =========================
 let mouseX = null
 let mouseY = null
 
 document.addEventListener('mousemove', e => {
-
     if(mouseX === null) {
-
         mouseX = e.screenX
         mouseY = e.screenY
-
         return
     }
-
-    const dx =
-        Math.abs(e.screenX - mouseX)
-
-    const dy =
-        Math.abs(e.screenY - mouseY)
-
+    const dx = Math.abs(e.screenX - mouseX)
+    const dy = Math.abs(e.screenY - mouseY)
     if(dx > 5 || dy > 5) {
-
-        require('electron').ipcRenderer.send(
-            'quit-app'
-        )
+        require('electron').ipcRenderer.send('quit-app')
     }
 })
 
 document.addEventListener('mousedown', () => {
-
-require('electron').ipcRenderer.send(
-    'quit-app'
-)
+    require('electron').ipcRenderer.send('quit-app')
 })
 
 document.addEventListener('keydown', () => {
-
-require('electron').ipcRenderer.send(
-    'quit-app'
-)
+    require('electron').ipcRenderer.send('quit-app')
 })
