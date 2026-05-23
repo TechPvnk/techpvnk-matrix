@@ -1,0 +1,48 @@
+{
+  "name": "techpvnk-matrix",
+  "productName": "TechPvnk Matrix",
+  "version": "1.0.0",
+  "description": "TechPvnk CRT Matrix Screensaver",
+  "author": "TechPvnk",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.techpvnk.matrix",
+    "productName": "TechPvnk Matrix",
+    "copyright": "Copyright © 2026 TechPvnk",
+    "asar": true,
+    "compression": "maximum",
+    "files": [
+      "**/*",
+      "!dist/*",
+      "!node_modules/.cache/*",
+      "!*.md",
+      "!*.zip",
+      "!*.psd",
+      "!screenshots/*",
+      "!references/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TechPvnk Matrix",
+      "installerSidebar": "assets/installerSidebar.bmp",
+      "installerHeader": "assets/installerHeader.bmp",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/uninstall.ico"
+    }
+  },
+  "devDependencies": {
+    "electron": "^41.7.0",
+    "electron-builder": "^26.8.1"
+  }
+}
