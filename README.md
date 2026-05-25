@@ -10,13 +10,6 @@ TechPvnk Matrix recreates the iconic digital rain aesthetic with:
 - retro terminal-inspired visuals
 - ThinkPad-focused cyberpunk atmosphere
 
-Designed for:
-- ThinkPads
-- cyberdeck setups
-- hacker aesthetic workstations
-- retro-tech enthusiasts
-- CRT lovers
-
 ---
 
 # Features
