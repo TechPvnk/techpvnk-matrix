@@ -9,6 +9,18 @@ const {
 
 let windows = []
 
+const screensaverArgs = process.argv
+    .slice(1)
+    .map(arg => arg.toLowerCase())
+
+const isConfigureMode = screensaverArgs.some(arg => arg === '/c' || arg.startsWith('/c:'))
+const isPreviewMode = screensaverArgs.some(arg => arg === '/p' || arg.startsWith('/p:'))
+const shouldQuitForScreensaverMode = isConfigureMode || isPreviewMode
+
+if (shouldQuitForScreensaverMode) {
+    app.quit()
+}
+
 function createWindow() {
     // 1. Initialize the boot splash screen window on the primary display
     splash = new BrowserWindow({
@@ -72,7 +84,9 @@ app.commandLine.appendSwitch('disable-breakpad')
 app.commandLine.appendSwitch('disable-sync')
 app.commandLine.appendSwitch('disable-translate')
 
-app.whenReady().then(createWindow)
+if (!shouldQuitForScreensaverMode) {
+    app.whenReady().then(createWindow)
+}
 
 ipcMain.on('quit-app', () => {
     app.quit()

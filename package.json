@@ -31,14 +31,17 @@
     },
     "nsis": {
       "oneClick": false,
+      "selectPerMachineByDefault": true,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
       "shortcutName": "TechPvnk Matrix",
       "installerSidebar": "assets/installerSidebar.bmp",
       "installerHeader": "assets/installerHeader.bmp",
       "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/uninstall.ico"
+      "uninstallerIcon": "assets/uninstall.ico",
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": false,
+      "runAfterFinish": false,
+      "include": "build/installer.nsh"
     }
   },
   "devDependencies": {
